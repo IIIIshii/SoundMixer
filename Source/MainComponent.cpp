@@ -1,4 +1,7 @@
 #include "MainComponent.h"
+#include <mmdeviceapi.h>
+#include <endpointvolume.h>
+#include <audiopolicy.h>
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -19,12 +22,56 @@ MainComponent::MainComponent()
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
+
+    //COM
+	HRESULT hr = CoInitialize(NULL);
+    if (FAILED(hr)) {
+		DBG("COM initialization failed");
+    }
+
+	//Master Volume
+	IAudioEndpointVolume* pEndPointVolume = NULL;
+	IMMDevice* pMMDevice = NULL;
+	IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
+
+    //‚Ü‚¸MMDevice Enumerator
+    hr = CoCreateInstance(
+        __uuidof(MMDeviceEnumerator),
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        __uuidof(IMMDeviceEnumerator),
+		(LPVOID*)&pMMDeviceEnumerator
+    );
+    if (FAILED(hr)) {
+        DBG("MMDevice Enumerator instantiation failed");
+    }
+
+    //ŽŸ‚ÉMMDevice
+	hr = pMMDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pMMDevice);
+	pMMDeviceEnumerator->Release();
+	pMMDeviceEnumerator = NULL;
+    if (FAILED(hr)) {
+        DBG("MMDevice instantiation failed");
+    }
+
+	//ÅŒã‚ÉEndpointVolume
+	hr = pMMDevice->Activate(
+        __uuidof(IAudioEndpointVolume),
+        CLSCTX_INPROC_SERVER,
+        NULL,
+        (LPVOID*)&pEndPointVolume
+    );
+    if (FAILED(hr)) {
+        DBG("EndpointVolume instantiation failed");
+    }
+	pEndPointVolume->GetMasterVolumeLevelScalar(&endpointVolume);
 }
 
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();
+    CoUninitialize();
 }
 
 //==============================================================================
@@ -62,9 +109,13 @@ void MainComponent::releaseResources()
 void MainComponent::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    //g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+	g.fillAll(juce::Colours::black);
 
     // You can add your drawing code here!
+    g.setColour(juce::Colours::yellow);
+	g.setFont(40.0f);
+	g.drawText("Master Volume: " + std::to_string(endpointVolume * 100.0f), getLocalBounds(), juce::Justification::centred, true);
 }
 
 void MainComponent::resized()

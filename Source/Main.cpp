@@ -60,7 +60,8 @@ public:
     public:
         MainWindow (juce::String name)
             : DocumentWindow (name,
-                              juce::Desktop::getInstance().getDefaultLookAndFeel()
+               
+                juce::Desktop::getInstance().getDefaultLookAndFeel()
                                                           .findColour (juce::ResizableWindow::backgroundColourId),
                               DocumentWindow::allButtons)
         {
